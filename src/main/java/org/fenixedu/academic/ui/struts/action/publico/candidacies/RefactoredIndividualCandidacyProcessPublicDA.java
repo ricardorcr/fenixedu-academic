@@ -52,6 +52,7 @@ import org.fenixedu.academic.domain.candidacyProcess.exceptions.HashCodeForEmail
 import org.fenixedu.academic.domain.caseHandling.Process;
 import org.fenixedu.academic.domain.exceptions.DomainException;
 import org.fenixedu.academic.domain.person.IDDocumentType;
+import org.fenixedu.academic.domain.student.Student;
 import org.fenixedu.academic.dto.candidacy.PrecedentDegreeInformationBean;
 import org.fenixedu.academic.dto.person.PersonBean;
 import org.fenixedu.academic.service.services.caseHandling.CreateNewProcess;
@@ -300,12 +301,21 @@ public abstract class RefactoredIndividualCandidacyProcessPublicDA extends Indiv
                         + ".error.public.candidacies.fill.personal.information.and.institution.id.contributorNumber");
                 return executeCreateCandidacyPersonalInformationInvalid(mapping, form, request, response);
             }
-
             if (!StringUtils.isEmpty(bean.getPersonNumber())) {
-                // person must fill ist userid
-                addActionMessage("individualCandidacyMessages", request, getProcessType().getSimpleName()
-                        + ".error.public.candidacies.fill.personal.information.and.institution.id.userId.missing");
-                return executeCreateCandidacyPersonalInformationInvalid(mapping, form, request, response);
+                Student student = Student.readStudentByNumber(Integer.valueOf(bean.getPersonNumber()));
+                if (student != null) {
+                    if (!student.getPerson().getDocumentIdNumber().equals(bean.getPersonBean().getDocumentIdNumber())) {
+                        addActionMessage("individualCandidacyMessages", request, getProcessType().getSimpleName()
+                                + ".error.public.candidacies.fill.personal.information.documentId.not.match");
+                        return executeCreateCandidacyPersonalInformationInvalid(mapping, form, request, response);
+                    } else {
+                        bean.setPersonBean(new PersonBean(student.getPerson()));
+                    }
+                } else {
+                    addActionMessage("individualCandidacyMessages", request, getProcessType().getSimpleName()
+                            + ".error.public.candidacies.fill.personal.information.student.not.found");
+                    return executeCreateCandidacyPersonalInformationInvalid(mapping, form, request, response);
+                }
             } else {
                 fillExternalPrecedentInformation(mapping, form, request, response);
             }
